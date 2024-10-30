@@ -43,7 +43,7 @@ class Kernel(BaseEstimator, metaclass=ABCMeta):
     """
 
   @abstractmethod
-  def _Kdiag(self, X: ArrayOnGPU) -> ArrayOnGPU:
+  def _Kdiag(self, X: ArrayOnCPUOrGPU) -> ArrayOnCPUOrGPU:
     """Computes the diagonal kernel entries.
 
     Args:
@@ -85,15 +85,22 @@ class Kernel(BaseEstimator, metaclass=ABCMeta):
     Returns:
       A kernel matrix or its diagonal entries on CPU or GPU.
     """
-    # Validate data and move it to GPU.
-    X = cp.asarray(self._validate_data(X))
+    xp = cp.get_array_module(X)
+    if Y!=None:
+      yp = cp.get_array_module(Y)
+      assert(yp == xp, "Type mismatch: X and Y must both be the same type of arrays.")
+
+    # Validate data and leave its residency as is
+    X = self._validate_data(X)
     if diag:
       K = self._Kdiag(X)
     else:
-      Y = cp.asarray(self._validate_data(Y)) if Y is not None else None
+      Y = self._validate_data(Y) if Y is not None else None
       K =  self._K(X, Y)
-    if not return_on_gpu:
+    if return_on_gpu:
+      # Force return on GPU
       K = cp.asnumpy(K)
+    # Otherwise we return the residency that was passed in
     return K
 
 

@@ -7,7 +7,7 @@ import warnings
 
 from .projections import (DiagonalProjection, RandomProjection,
                           TensorizedRandomProjection)
-from .utils import _EPS, ArrayOnGPU, multi_cumsum
+from .utils import _EPS, ArrayOnGPU, multi_cumsum, ArrayOnCPUOrGPU
 from numba import cuda
 from numba.core.errors import NumbaPerformanceWarning
 from typing import List, Optional, Union
@@ -59,35 +59,36 @@ def signature_kern_first_order(M: ArrayOnGPU, n_levels: int,
     The signature kernel matrix of shape `[..., n_X, n_Y]` or `[..., n]`,
       depending on `M` above, and `...` is `n_levels` when `return_levels`.
   """
+  mp = cp.get_array_module(M)
 
   if difference:
-    M = cp.diff(cp.diff(M, axis=-2), axis=-1)
+    M = mp.diff(mp.diff(M, axis=-2), axis=-1)
   if M.ndim == 4:
     n_X, n_Y  = M.shape[:2]
-    K = cp.ones((n_X, n_Y), dtype=M.dtype)
+    K = mp.ones((n_X, n_Y), dtype=M.dtype)
   else:
     n_X = M.shape[0]
-    K = cp.ones((n_X,), dtype=M.dtype)
+    K = mp.ones((n_X,), dtype=M.dtype)
 
   if return_levels:
-    K = [K, cp.sum(M, axis=(-2, -1))]
+    K = [K, mp.sum(M, axis=(-2, -1))]
   else:
-    K += cp.sum(M, axis=(-2, -1))
+    K += mp.sum(M, axis=(-2, -1))
 
-  R = cp.copy(M)
+  R = mp.copy(M)
   for i in range(1, n_levels):
     R = M * multi_cumsum(R, exclusive=True, axis=(-2, -1))
     if return_levels:
-      K.append(cp.sum(R, axis=(-2, -1)))
+      K.append(mp.sum(R, axis=(-2, -1)))
     else:
-      K += cp.sum(R, axis=(-2, -1))
+      K += mp.sum(R, axis=(-2, -1))
 
-  return cp.stack(K, axis=0) if return_levels else K
+  return mp.stack(K, axis=0) if return_levels else K
 
 
-def signature_kern_higher_order(M: ArrayOnGPU, n_levels: int, order: int,
+def signature_kern_higher_order(M: ArrayOnCPUOrGPU, n_levels: int, order: int,
                                 difference: bool = True,
-                                return_levels: bool = False) -> ArrayOnGPU:
+                                return_levels: bool = False) -> ArrayOnCPUOrGPU:
   """Computes the higher-order full rank signature kernel using a kernel trick.
 
   Args:
@@ -101,43 +102,43 @@ def signature_kern_higher_order(M: ArrayOnGPU, n_levels: int, order: int,
     The signature kernel matrix of shape `[..., n_X, n_Y]` or `[..., n]`,
       depending on `M` above, and `...` is `n_levels` when `return_levels`.
   """
-
+  mp = cp.get_array_module(M)
   if difference:
-    M = cp.diff(cp.diff(M, axis=-2), axis=-1)
+    M = mp.diff(mp.diff(M, axis=-2), axis=-1)
 
   if M.ndim == 4:
     n_X, n_Y = M.shape[0], M.shape[1]
-    K = cp.ones((n_X, n_Y), dtype=M.dtype)
+    K = mp.ones((n_X, n_Y), dtype=M.dtype)
   else:
     n_X = M.shape[0]
-    K = cp.ones((n_X,), dtype=M.dtype)
+    K = mp.ones((n_X,), dtype=M.dtype)
 
   if return_levels:
-    K = [K, cp.sum(M, axis=(-2, -1))]
+    K = [K, mp.sum(M, axis=(-2, -1))]
   else:
-    K += cp.sum(M, axis=(-2, -1))
+    K += mp.sum(M, axis=(-2, -1))
 
-  R = cp.copy(M)[None, None, ...]
+  R = mp.copy(M)[None, None, ...]
   for i in range(1, n_levels):
     d = min(i+1, order)
-    R_next = cp.empty((d, d) + M.shape, dtype=M.dtype)
+    R_next = mp.empty((d, d) + M.shape, dtype=M.dtype)
     # Both time axes are non-repeating.
     R_next[0, 0] = M * multi_cumsum(
-      cp.sum(R, axis=(0, 1)), exclusive=True, axis=(-2, -1))
+      mp.sum(R, axis=(0, 1)), exclusive=True, axis=(-2, -1))
     for r in range(1, d):
       R_next[0, r] = 1./(r+1) * M * multi_cumsum(
-        cp.sum(R[:, r-1], axis=0), exclusive=True, axis=-2)
+        mp.sum(R[:, r-1], axis=0), exclusive=True, axis=-2)
       R_next[r, 0] = 1./(r+1) * M * multi_cumsum(
-        cp.sum(R[r-1, :], axis=0), exclusive=True, axis=-1)
+        mp.sum(R[r-1, :], axis=0), exclusive=True, axis=-1)
       for s in range(1, d):
         R_next[r, s] = 1./((r+1)*(s+1)) * M * R[r-1, s-1]
     R = R_next
     if return_levels:
-      K.append(cp.sum(R, axis=(0, 1, -2, -1)))
+      K.append(mp.sum(R, axis=(0, 1, -2, -1)))
     else:
-      K += cp.sum(R, axis=(0, 1, -2, -1))
+      K += mp.sum(R, axis=(0, 1, -2, -1))
 
-  return cp.stack(K, axis=0) if return_levels else K
+  return mp.stack(K, axis=0) if return_levels else K
 
 
 # -----------------------------------------------------------------------------

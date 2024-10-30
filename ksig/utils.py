@@ -60,17 +60,18 @@ def check_random_state(random_state: Optional[RandomStateOrSeed] = None
 # Linear Algebra.
 # -----------------------------------------------------------------------------
 
-def multi_cumsum(M: ArrayOnGPU, exclusive: bool = False, axis: int = -1
-         ) -> ArrayOnGPU:
+def multi_cumsum(M: ArrayOnCPUOrGPU, exclusive: bool = False, axis: int = -1
+         ) -> ArrayOnCPUOrGPU:
   """Computes the cumulative sum along a given set of axes.
 
   Args:
     M: A data array on GPU.
     axis: An axis or a set of axes.
   """
+  mp = cp.get_array_module(M)
 
   ndim = M.ndim
-  axis = [axis] if cp.isscalar(axis) else axis
+  axis = [axis] if mp.isscalar(axis) else axis
   axis = [ndim+ax if ax < 0 else ax for ax in axis]
 
   if exclusive:
@@ -80,17 +81,17 @@ def multi_cumsum(M: ArrayOnGPU, exclusive: bool = False, axis: int = -1
     M = M[slices]
 
   for ax in axis:
-    M = cp.cumsum(M, axis=ax)
+    M = mp.cumsum(M, axis=ax)
 
   if exclusive:
     # Pre-pad with zeros.
     pads = tuple((1, 0) if ax in axis else (0, 0) for ax in range(ndim))
-    M = cp.pad(M, pads)
+    M = mp.pad(M, pads)
 
   return M
 
 
-def matrix_diag(A: ArrayOnGPU) -> ArrayOnGPU:
+def matrix_diag(A: ArrayOnCPUOrGPU) -> ArrayOnCPUOrGPU:
   """Extracts the diagonals from a batch of matrices.
 
   Args:
@@ -99,12 +100,13 @@ def matrix_diag(A: ArrayOnGPU) -> ArrayOnGPU:
   Returns:
     The extracted diagonals of shape `[..., d]`.
   """
-  return cp.einsum('...ii->...i', A)
+  xp = cp.get_array_module(A)
+  return xp.einsum('...ii->...i', A)
 
 
-def matrix_mult(X: ArrayOnGPU, Y: Optional[ArrayOnGPU] = None,
+def matrix_mult(X: ArrayOnCPUOrGPU, Y: Optional[ArrayOnCPUOrGPU] = None,
                 transpose_X: bool = False, transpose_Y: bool = False
-                ) -> ArrayOnGPU:
+                ) -> ArrayOnCPUOrGPU:
   """Performs batch matrix multiplication.
 
   Args:
