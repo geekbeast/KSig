@@ -116,9 +116,18 @@ def matrix_mult(X: ArrayOnGPU, Y: Optional[ArrayOnGPU] = None,
   Returns:
     The result of matrix multiplication, another batch of matrices.
   """
+  xp = cp.get_array_module(X)
+
+  # Make sure that Y is the same type as X
+  if Y != None:
+    if isinstance(xp, np.ndarray):
+      assert (isinstance(yp, np.ndarray), "Type mismatch: X as np.ndarray and Y was cp.ndarray")
+    else:
+      assert (isinstance(yp, cp.ndarray), "Type mismatch: X as cp.ndarray and Y was np.ndarray")
+
   subscript_X = '...ji' if transpose_X else '...ij'
   subscript_Y = '...kj' if transpose_Y else '...jk'
-  return cp.einsum(
+  return xp.einsum(
     f'{subscript_X},{subscript_Y}->...ik', X, Y if Y is not None else X)
 
 
