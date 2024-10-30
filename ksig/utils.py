@@ -120,11 +120,13 @@ def matrix_mult(X: ArrayOnGPU, Y: Optional[ArrayOnGPU] = None,
 
   # Make sure that Y is the same type as X
   if Y != None:
-    if isinstance(xp, np.ndarray):
-      assert (isinstance(yp, np.ndarray), "Type mismatch: X as np.ndarray and Y was cp.ndarray")
-    else:
-      assert (isinstance(yp, cp.ndarray), "Type mismatch: X as cp.ndarray and Y was np.ndarray")
-
+    yp = cp.get_array_module(Y)
+    assert(xp == yp, "Type mismatch: X and Y must both be either numpy or cupy arrays.")
+  if xp == np:
+    print("Using numpy for matrix multiplication.")
+  else:
+    print("Using cupy for matrix multiplication.")
+      
   subscript_X = '...ji' if transpose_X else '...ij'
   subscript_Y = '...kj' if transpose_Y else '...jk'
   return xp.einsum(
