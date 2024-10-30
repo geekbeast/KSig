@@ -142,7 +142,7 @@ class LinearKernel(StaticKernel):
     """
     self.scale = utils.check_positive_value(scale, 'scale')
 
-  def _K(self, X: ArrayOnGPU, Y: Optional[ArrayOnGPU] = None) -> ArrayOnGPU:
+  def _K(self, X: ArrayOnCPUOrGPU, Y: Optional[ArrayOnCPUOrGPU] = None) -> ArrayOnCPUOrGPU:
     """Computes the Gram matrix and rescales by `scale`.
 
     Args:
@@ -154,7 +154,7 @@ class LinearKernel(StaticKernel):
     """
     return self.scale * utils.matrix_mult(X, Y, transpose_Y=True)
 
-  def _Kdiag(self, X: ArrayOnGPU) -> ArrayOnGPU:
+  def _Kdiag(self, X: ArrayOnCPUOrGPU) -> ArrayOnGPU:
     """Computes the squared Euclid. norm of the samples in `X` and rescales it.
 
     Args:

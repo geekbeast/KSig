@@ -126,14 +126,14 @@ def matrix_mult(X: ArrayOnGPU, Y: Optional[ArrayOnGPU] = None,
     print("Using numpy for matrix multiplication.")
   else:
     print("Using cupy for matrix multiplication.")
-      
+
   subscript_X = '...ji' if transpose_X else '...ij'
   subscript_Y = '...kj' if transpose_Y else '...jk'
   return xp.einsum(
     f'{subscript_X},{subscript_Y}->...ik', X, Y if Y is not None else X)
 
 
-def squared_norm(X: ArrayOnGPU, axis: int = -1) -> ArrayOnGPU:
+def squared_norm(X: ArrayOnCPUOrGPU, axis: int = -1) -> ArrayOnGPU:
   """Computes the squared norm by reducing over a given axis.
 
   Args:
@@ -143,7 +143,8 @@ def squared_norm(X: ArrayOnGPU, axis: int = -1) -> ArrayOnGPU:
   Returns:
     An (n-1)-dim. array containing the squared norms.
   """
-  return cp.sum(cp.square(X), axis=axis)
+  xp = cp.get_array_module(X)
+  return xp.sum(xp.square(X), axis=axis)
 
 
 def squared_euclid_dist(X: ArrayOnGPU, Y: Optional[ArrayOnGPU] = None
