@@ -7,6 +7,7 @@ from cupy.random import RandomState
 from numbers import Integral, Number
 from typing import Optional, Sequence, Tuple, Union
 
+from numba import jit
 
 ArrayOnCPU = np.ndarray
 ArrayOnGPU = cp.ndarray
@@ -135,7 +136,7 @@ def matrix_mult(X: ArrayOnCPUOrGPU, Y: Optional[ArrayOnCPUOrGPU] = None,
     f'{subscript_X},{subscript_Y}->...ik', X, Y if Y is not None else X)
 
 
-def squared_norm(X: ArrayOnCPUOrGPU, axis: int = -1) -> ArrayOnGPU:
+def squared_norm(X: ArrayOnCPUOrGPU, axis: int = -1) -> ArrayOnCPUOrGPU:
   """Computes the squared norm by reducing over a given axis.
 
   Args:

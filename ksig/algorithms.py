@@ -8,7 +8,7 @@ import warnings
 from .projections import (DiagonalProjection, RandomProjection,
                           TensorizedRandomProjection)
 from .utils import _EPS, ArrayOnGPU, multi_cumsum, ArrayOnCPUOrGPU
-from numba import cuda
+from numba import cuda, jit
 from numba.core.errors import NumbaPerformanceWarning
 from typing import List, Optional, Union
 
@@ -19,9 +19,9 @@ warnings.simplefilter('ignore', category=NumbaPerformanceWarning)
 # Signature Algorithms.
 # -----------------------------------------------------------------------------
 
-def signature_kern(M: ArrayOnGPU, n_levels: int, order: int = -1,
+def signature_kern(M: ArrayOnCPUOrGPU, n_levels: int, order: int = -1,
                    difference: bool = True, return_levels: bool = False
-                   ) -> ArrayOnGPU:
+                   ) -> ArrayOnCPUOrGPU:
   """Computes the full-rank signature kernel using the kernel trick.
 
   Args:
@@ -43,8 +43,7 @@ def signature_kern(M: ArrayOnGPU, n_levels: int, order: int = -1,
       M, n_levels, order=order, difference=difference,
       return_levels=return_levels)
 
-
-def signature_kern_first_order(M: ArrayOnGPU, n_levels: int,
+def signature_kern_first_order(M: ArrayOnCPUOrGPU, n_levels: int,
                                difference: bool = True,
                                return_levels: bool = False) -> ArrayOnGPU:
   """Computes the first-order full-rank signature kernel using a kernel trick.
@@ -84,7 +83,6 @@ def signature_kern_first_order(M: ArrayOnGPU, n_levels: int,
       K += mp.sum(R, axis=(-2, -1))
 
   return mp.stack(K, axis=0) if return_levels else K
-
 
 def signature_kern_higher_order(M: ArrayOnCPUOrGPU, n_levels: int, order: int,
                                 difference: bool = True,
