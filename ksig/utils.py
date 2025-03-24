@@ -122,7 +122,7 @@ def matrix_mult(X: ArrayOnCPUOrGPU, Y: Optional[ArrayOnCPUOrGPU] = None,
   xp = cp.get_array_module(X)
 
   # Make sure that Y is the same type as X
-  if Y != None:
+  if Y is not None:
     yp = cp.get_array_module(Y)
     assert(xp == yp, "Type mismatch: X and Y must both be either numpy or cupy arrays.")
   if xp == np:

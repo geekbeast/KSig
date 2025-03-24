@@ -86,7 +86,7 @@ class Kernel(BaseEstimator, metaclass=ABCMeta):
       A kernel matrix or its diagonal entries on CPU or GPU.
     """
     xp = cp.get_array_module(X)
-    if Y!=None:
+    if Y is not None:
       yp = cp.get_array_module(Y)
       assert(yp == xp, "Type mismatch: X and Y must both be the same type of arrays.")
 

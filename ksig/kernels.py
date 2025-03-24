@@ -70,9 +70,8 @@ class SignatureBase(Kernel, metaclass=ABCMeta):
     if X.ndim == 2:
       if n_features is None or reset:
         warnings.warn(
-          '`X` has` ndim==2. Assuming inputs are univariate time series.',
-          'Recommend passing an `n_features` parameter during init when using',
-          'flattened arrays of ndim==2.')
+          message = '`X` has` ndim==2. Assuming inputs are univariate time series.' + 'Recommend passing an `n_features` parameter during init when using',
+          source = 'flattened arrays of ndim==2.')
         n_features = 1
     elif X.ndim == 3:
       if n_features is None or reset:
